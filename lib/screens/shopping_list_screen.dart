@@ -242,8 +242,17 @@ class _BottomActionBar extends StatelessWidget {
             flex: 3,
             child: ElevatedButton.icon(
               onPressed: onAddFromFavorites,
-              icon: const Icon(Icons.star),
-              label: const Text('お気に入りから追加'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+              icon: const Icon(Icons.star, size: 20),
+              label: const Text(
+                'お気に入りから追加',
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.visible,
+                style: TextStyle(fontSize: 15),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -251,8 +260,17 @@ class _BottomActionBar extends StatelessWidget {
             flex: 2,
             child: OutlinedButton.icon(
               onPressed: onAddNew,
-              icon: const Icon(Icons.add),
-              label: const Text('新しい商品'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text(
+                '新しい商品',
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.visible,
+                style: TextStyle(fontSize: 15),
+              ),
             ),
           ),
         ],

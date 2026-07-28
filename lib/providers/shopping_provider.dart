@@ -262,4 +262,107 @@ class ShoppingProvider extends ChangeNotifier {
     await _storage.deleteCategory(id);
     notifyListeners();
   }
+
+  // ============ お気に入りのエクスポート / インポート ============
+  // メモ帳などにコピーして保存・復元できるよう、シンプルなテキスト形式で書き出す。
+  // 形式:
+  //   #QuickShopList:Favorites:v1
+  //   [フォルダ名]
+  //   商品名
+  //   商品名
+  //
+  //   [未分類]
+  //   商品名
+  static const String _exportHeader = '#QuickShopList:Favorites:v1';
+
+  /// お気に入り全体をテキスト形式に書き出す
+  String exportFavoritesAsText() {
+    final buffer = StringBuffer();
+    buffer.writeln(_exportHeader);
+
+    final Map<String, List<FavoriteItem>> grouped = {};
+    for (final fav in _favorites) {
+      final catId = fav.categoryId ?? uncategorizedCategoryId;
+      grouped.putIfAbsent(catId, () => []).add(fav);
+    }
+
+    for (final folder in userFolders) {
+      final items = grouped[folder.id];
+      if (items == null || items.isEmpty) continue;
+      buffer.writeln();
+      buffer.writeln('[${folder.name}]');
+      for (final item in items) {
+        buffer.writeln(item.name);
+      }
+    }
+
+    final unfiled = grouped[uncategorizedCategoryId];
+    if (unfiled != null && unfiled.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('[未分類]');
+      for (final item in unfiled) {
+        buffer.writeln(item.name);
+      }
+    }
+
+    return buffer.toString().trim();
+  }
+
+  /// テキストからお気に入りを読み込む(既存データとマージ、重複はスキップ)
+  /// 戻り値: (追加したフォルダ数, 追加した商品数, 重複でスキップした数)
+  Future<(int, int, int)> importFavoritesFromText(String text) async {
+    final lines = text.split('\n');
+    String? currentFolderName;
+    int addedFolders = 0;
+    int addedItems = 0;
+    int skipped = 0;
+
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+      if (line.startsWith('#')) continue; // ヘッダー行はスキップ
+
+      if (line.startsWith('[') && line.endsWith(']')) {
+        currentFolderName = line.substring(1, line.length - 1).trim();
+        continue;
+      }
+
+      // 商品名の行
+      final itemName = line;
+      String? categoryId;
+
+      if (currentFolderName != null && currentFolderName != '未分類') {
+        // フォルダ名から既存フォルダを検索、なければ新規作成
+        ShoppingCategory? folder;
+        for (final c in _categories) {
+          if (c.name == currentFolderName && c.id != uncategorizedCategoryId) {
+            folder = c;
+            break;
+          }
+        }
+        if (folder == null) {
+          folder = await addFolder(currentFolderName);
+          addedFolders++;
+        }
+        categoryId = folder.id;
+      }
+
+      // 同じフォルダ内に同名の商品がすでにあればスキップ(重複防止)
+      final targetCategoryId = categoryId ?? uncategorizedCategoryId;
+      final duplicate = _favorites.any(
+        (f) =>
+            f.name == itemName &&
+            (f.categoryId ?? uncategorizedCategoryId) == targetCategoryId,
+      );
+      if (duplicate) {
+        skipped++;
+        continue;
+      }
+
+      await addFavorite(itemName, categoryId: categoryId);
+      addedItems++;
+    }
+
+    return (addedFolders, addedItems, skipped);
+  }
 }

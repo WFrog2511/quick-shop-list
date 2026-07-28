@@ -5,6 +5,7 @@ import '../models/category.dart';
 import '../theme.dart';
 import '../widgets/favorite_tile.dart';
 import '../widgets/folder_dialog.dart';
+import '../widgets/export_import_sheet.dart';
 import 'favorite_edit_screen.dart';
 import 'folder_detail_screen.dart';
 
@@ -39,6 +40,11 @@ class FavoritesScreen extends StatelessWidget {
                 icon: const Icon(Icons.create_new_folder_outlined),
                 tooltip: 'フォルダを作成',
                 onPressed: () => _openCreateFolder(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.import_export),
+                tooltip: 'バックアップ(コピー/読み込み)',
+                onPressed: () => _openExportImport(context),
               ),
             ],
           ),
@@ -95,6 +101,18 @@ class FavoritesScreen extends StatelessWidget {
 
   void _openCreateFolder(BuildContext context) {
     showDialog(context: context, builder: (_) => const FolderDialog());
+  }
+
+  void _openExportImport(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const ExportImportSheet(),
+    );
   }
 }
 
