@@ -12,16 +12,20 @@ class StorageService {
   static const String shoppingBoxName = 'shoppingList';
   static const String favoritesBoxName = 'favorites';
   static const String categoriesBoxName = 'categories';
+  static const String settingsBoxName = 'settings';
+  static const String themeModeKey = 'themeMode';
 
   late Box _shoppingBox;
   late Box _favoritesBox;
   late Box _categoriesBox;
+  late Box _settingsBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
     _shoppingBox = await Hive.openBox(shoppingBoxName);
     _favoritesBox = await Hive.openBox(favoritesBoxName);
     _categoriesBox = await Hive.openBox(categoriesBoxName);
+    _settingsBox = await Hive.openBox(settingsBoxName);
 
     // 初回起動時に「未分類」カテゴリを作成
     if (_categoriesBox.isEmpty) {
@@ -85,5 +89,15 @@ class StorageService {
 
   Future<void> deleteCategory(String id) async {
     await _categoriesBox.delete(id);
+  }
+
+  // ---------- 設定(テーマなど) ----------
+  /// 保存済みのテーマモード名('light'/'dark'/'system')を取得。未設定ならnull。
+  String? loadThemeMode() {
+    return _settingsBox.get(themeModeKey) as String?;
+  }
+
+  Future<void> saveThemeMode(String modeName) async {
+    await _settingsBox.put(themeModeKey, modeName);
   }
 }

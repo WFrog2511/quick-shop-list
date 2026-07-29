@@ -11,6 +11,7 @@ class ExportImportSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -24,7 +25,7 @@ class ExportImportSheet extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 20),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.divider,
+                color: colors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -33,10 +34,10 @@ class ExportImportSheet extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'テキストとしてコピーし、メモ帳などに保存できます。\n'
               '同じ形式のテキストを貼り付けて復元することもできます。',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: colors.textSecondary),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -110,15 +111,16 @@ class _ImportTextDialogState extends State<_ImportTextDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return AlertDialog(
       title: const Text('お気に入りを読み込む'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'コピーしたテキストを下に貼り付けてください',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 13, color: colors.textSecondary),
           ),
           const SizedBox(height: 12),
           TextField(

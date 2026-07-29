@@ -55,13 +55,15 @@ class FolderDetailScreen extends StatelessWidget {
             ],
           ),
           body: items.isEmpty
-              ? const Center(
+              ? Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(32),
                     child: Text(
                       'このフォルダにはまだ商品がありません。\n右下の「追加」からお気に入りを登録できます。',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(
+                        color: AppColors.of(context).textSecondary,
+                      ),
                     ),
                   ),
                 )

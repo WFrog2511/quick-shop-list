@@ -44,6 +44,7 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<ShoppingProvider>();
     final folders = provider.userFolders;
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'お気に入りを編集' : 'お気に入りに登録')),
@@ -52,11 +53,11 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '商品名',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -69,10 +70,10 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
               decoration: InputDecoration(
                 hintText: '例: 牛乳、卵、洗剤',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: colors.cardBackground,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.divider),
+                  borderSide: BorderSide(color: colors.divider),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -82,11 +83,11 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
               style: const TextStyle(fontSize: 17),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'フォルダ',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -101,6 +102,7 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
                       _selectedCategoryId == null ||
                       _selectedCategoryId == uncategorizedCategoryId,
                   onTap: () => setState(() => _selectedCategoryId = null),
+                  colors: colors,
                 ),
                 ...folders.map(
                   (folder) => _FolderChip(
@@ -108,6 +110,7 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
                     selected: _selectedCategoryId == folder.id,
                     onTap: () =>
                         setState(() => _selectedCategoryId = folder.id),
+                    colors: colors,
                   ),
                 ),
                 ActionChip(
@@ -202,11 +205,13 @@ class _FolderChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final AppColors colors;
 
   const _FolderChip({
     required this.label,
     required this.selected,
     required this.onTap,
+    required this.colors,
   });
 
   @override
@@ -215,14 +220,12 @@ class _FolderChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.lightGreen,
+      selectedColor: colors.lightGreen,
       labelStyle: TextStyle(
-        color: selected ? AppColors.primaryGreen : AppColors.textPrimary,
+        color: selected ? colors.primaryGreen : colors.textPrimary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
-      side: BorderSide(
-        color: selected ? AppColors.primaryGreen : AppColors.divider,
-      ),
+      side: BorderSide(color: selected ? colors.primaryGreen : colors.divider),
     );
   }
 }

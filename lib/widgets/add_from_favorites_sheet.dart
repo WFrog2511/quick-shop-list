@@ -21,6 +21,7 @@ class _AddFromFavoritesSheetState extends State<AddFromFavoritesSheet> {
   Widget build(BuildContext context) {
     final provider = context.watch<ShoppingProvider>();
     final favorites = provider.favorites;
+    final colors = AppColors.of(context);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -29,9 +30,9 @@ class _AddFromFavoritesSheetState extends State<AddFromFavoritesSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: colors.cardBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -40,7 +41,7 @@ class _AddFromFavoritesSheetState extends State<AddFromFavoritesSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: colors.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -75,12 +76,12 @@ class _AddFromFavoritesSheetState extends State<AddFromFavoritesSheet> {
               ),
               Expanded(
                 child: favorites.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
+                    ? Padding(
+                        padding: const EdgeInsets.all(32),
                         child: Text(
                           'お気に入りがまだありません。\n右上の「新規」から登録できます。',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: colors.textSecondary),
                         ),
                       )
                     : ListView.builder(
@@ -94,6 +95,7 @@ class _AddFromFavoritesSheetState extends State<AddFromFavoritesSheet> {
                             favorite: fav,
                             selected: selected,
                             onTap: () => _toggleSelection(fav),
+                            colors: colors,
                           );
                         },
                       ),
@@ -153,11 +155,13 @@ class _SelectableFavoriteTile extends StatelessWidget {
   final FavoriteItem favorite;
   final bool selected;
   final VoidCallback onTap;
+  final AppColors colors;
 
   const _SelectableFavoriteTile({
     required this.favorite,
     required this.selected,
     required this.onTap,
+    required this.colors,
   });
 
   @override
@@ -165,7 +169,7 @@ class _SelectableFavoriteTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: selected ? AppColors.lightGreen : Colors.white,
+        color: selected ? colors.lightGreen : colors.cardBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -175,7 +179,7 @@ class _SelectableFavoriteTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? AppColors.primaryGreen : AppColors.divider,
+                color: selected ? colors.primaryGreen : colors.divider,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -183,9 +187,7 @@ class _SelectableFavoriteTile extends StatelessWidget {
               children: [
                 Icon(
                   selected ? Icons.check_circle : Icons.circle_outlined,
-                  color: selected
-                      ? AppColors.primaryGreen
-                      : AppColors.checkedGray,
+                  color: selected ? colors.primaryGreen : colors.checkedGray,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

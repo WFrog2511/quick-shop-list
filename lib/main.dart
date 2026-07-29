@@ -15,11 +15,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => ShoppingProvider()..init(),
-      child: MaterialApp(
-        title: 'Quick Shop List',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(),
-        home: const AppLoader(),
+      child: Consumer<ShoppingProvider>(
+        builder: (context, provider, _) {
+          return MaterialApp(
+            title: 'Quick Shop List',
+            debugShowCheckedModeBanner: false,
+            theme: buildLightTheme(),
+            darkTheme: buildDarkTheme(),
+            themeMode: provider.themeMode,
+            home: const AppLoader(),
+          );
+        },
       ),
     );
   }

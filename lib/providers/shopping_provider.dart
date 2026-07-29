@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/category.dart';
 import '../models/favorite_item.dart';
@@ -18,15 +18,59 @@ class ShoppingProvider extends ChangeNotifier {
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
 
+  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode get themeMode => _themeMode;
+
   Future<void> init() async {
     await _storage.init();
     _shoppingList = _storage.loadShoppingList();
     _favorites = _storage.loadFavorites();
     _categories = _storage.loadCategories();
+    _themeMode = _themeModeFromName(_storage.loadThemeMode());
     _sortShoppingList();
     _sortFavorites();
     _sortCategories();
     _isLoaded = true;
+    notifyListeners();
+  }
+
+  // ============ テーマ(ダークモード切り替え) ============
+
+  ThemeMode _themeModeFromName(String? name) {
+    switch (name) {
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      case 'light':
+      default:
+        return ThemeMode.light;
+    }
+  }
+
+  String _themeModeToName(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.system:
+        return 'system';
+      case ThemeMode.light:
+        return 'light';
+    }
+  }
+
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
+
+  /// ライト⇔ダークをワンタップで切り替える(設定画面を挟まないシンプル操作)
+  Future<void> toggleDarkMode() async {
+    _themeMode = isDarkMode ? ThemeMode.light : ThemeMode.dark;
+    await _storage.saveThemeMode(_themeModeToName(_themeMode));
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    await _storage.saveThemeMode(_themeModeToName(mode));
     notifyListeners();
   }
 

@@ -14,6 +14,7 @@ class ShoppingListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Consumer<ShoppingProvider>(
       builder: (context, provider, _) {
         final unchecked = provider.uncheckedItems;
@@ -35,13 +36,13 @@ class ShoppingListScreen extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.lightGreen,
+                      color: colors.lightGreen,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '${provider.uncheckedCount}',
-                      style: const TextStyle(
-                        color: AppColors.primaryGreen,
+                      style: TextStyle(
+                        color: colors.primaryGreen,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -49,15 +50,29 @@ class ShoppingListScreen extends StatelessWidget {
                   ),
               ],
             ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  provider.isDarkMode
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
+                ),
+                tooltip: provider.isDarkMode ? 'ライトモードに切替' : 'ダークモードに切替',
+                onPressed: () => provider.toggleDarkMode(),
+              ),
+            ],
           ),
           body: provider.totalCount == 0
               ? _EmptyState(
+                  colors: colors,
                   onAddFromFavorites: () => _openAddFromFavorites(context),
                 )
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                   children: [
-                    ...unchecked.map((item) => _ShoppingItemTile(item: item)),
+                    ...unchecked.map(
+                      (item) => _ShoppingItemTile(item: item, colors: colors),
+                    ),
                     if (checked.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.only(
@@ -70,8 +85,8 @@ class ShoppingListScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 '購入済み (${checked.length})',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: colors.textSecondary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
@@ -86,7 +101,7 @@ class ShoppingListScreen extends StatelessWidget {
                               ),
                               label: const Text('まとめて削除'),
                               style: TextButton.styleFrom(
-                                foregroundColor: AppColors.textSecondary,
+                                foregroundColor: colors.textSecondary,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                 ),
@@ -96,7 +111,9 @@ class ShoppingListScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      ...checked.map((item) => _ShoppingItemTile(item: item)),
+                      ...checked.map(
+                        (item) => _ShoppingItemTile(item: item, colors: colors),
+                      ),
                     ],
                   ],
                 ),
@@ -104,6 +121,7 @@ class ShoppingListScreen extends StatelessWidget {
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerDocked,
           bottomSheet: _BottomActionBar(
+            colors: colors,
             onAddFromFavorites: () => _openAddFromFavorites(context),
             onAddNew: () => _openQuickAdd(context),
           ),
@@ -152,8 +170,9 @@ class ShoppingListScreen extends StatelessWidget {
 /// 買い物リストの1行。タップ範囲を広くしてワンタップでチェック切り替え。
 class _ShoppingItemTile extends StatelessWidget {
   final ShoppingListItem item;
+  final AppColors colors;
 
-  const _ShoppingItemTile({required this.item});
+  const _ShoppingItemTile({required this.item, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +181,8 @@ class _ShoppingItemTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: item.isChecked
-            ? AppColors.lightGreen.withValues(alpha: 0.3)
-            : Colors.white,
+            ? colors.lightGreen.withValues(alpha: 0.3)
+            : colors.cardBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -172,7 +191,7 @@ class _ShoppingItemTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: colors.divider),
             ),
             child: Row(
               children: [
@@ -186,8 +205,8 @@ class _ShoppingItemTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 17,
                       color: item.isChecked
-                          ? AppColors.checkedGray
-                          : AppColors.textPrimary,
+                          ? colors.checkedGray
+                          : colors.textPrimary,
                       decoration: item.isChecked
                           ? TextDecoration.lineThrough
                           : null,
@@ -196,10 +215,10 @@ class _ShoppingItemTile extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
                     size: 20,
-                    color: AppColors.textSecondary,
+                    color: colors.textSecondary,
                   ),
                   onPressed: () => provider.deleteShoppingItem(item.id),
                 ),
@@ -214,10 +233,12 @@ class _ShoppingItemTile extends StatelessWidget {
 
 /// 下部固定の操作バー(片手操作を意識し大きめボタン)
 class _BottomActionBar extends StatelessWidget {
+  final AppColors colors;
   final VoidCallback onAddFromFavorites;
   final VoidCallback onAddNew;
 
   const _BottomActionBar({
+    required this.colors,
     required this.onAddFromFavorites,
     required this.onAddNew,
   });
@@ -226,9 +247,9 @@ class _BottomActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        boxShadow: const [
           BoxShadow(
             color: Color(0x14000000),
             blurRadius: 8,
@@ -280,9 +301,10 @@ class _BottomActionBar extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  final AppColors colors;
   final VoidCallback onAddFromFavorites;
 
-  const _EmptyState({required this.onAddFromFavorites});
+  const _EmptyState({required this.colors, required this.onAddFromFavorites});
 
   @override
   Widget build(BuildContext context) {
@@ -292,24 +314,24 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.shopping_cart_outlined,
               size: 72,
-              color: AppColors.checkedGray,
+              color: colors.checkedGray,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               '買い物リストは空です',
               style: TextStyle(
                 fontSize: 17,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '下のボタンからお気に入りを追加しましょう',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 90),

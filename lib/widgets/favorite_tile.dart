@@ -16,11 +16,12 @@ class FavoriteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ShoppingProvider>();
+    final colors = AppColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -40,19 +41,19 @@ class FavoriteTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: colors.divider),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.lightGreen,
+                    color: colors.lightGreen,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add_shopping_cart,
-                    color: AppColors.primaryGreen,
+                    color: colors.primaryGreen,
                     size: 20,
                   ),
                 ),
@@ -67,10 +68,10 @@ class FavoriteTile extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
                     size: 20,
-                    color: AppColors.textSecondary,
+                    color: colors.textSecondary,
                   ),
                   onPressed: () {
                     Navigator.push(

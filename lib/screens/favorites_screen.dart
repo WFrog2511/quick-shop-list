@@ -17,6 +17,7 @@ class FavoritesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Consumer<ShoppingProvider>(
       builder: (context, provider, _) {
         final folders = provider.userFolders;
@@ -36,6 +37,15 @@ class FavoritesScreen extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             actions: [
+              IconButton(
+                icon: Icon(
+                  provider.isDarkMode
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
+                ),
+                tooltip: provider.isDarkMode ? 'ライトモードに切替' : 'ダークモードに切替',
+                onPressed: () => provider.toggleDarkMode(),
+              ),
               IconButton(
                 icon: const Icon(Icons.create_new_folder_outlined),
                 tooltip: 'フォルダを作成',
@@ -58,6 +68,7 @@ class FavoritesScreen extends StatelessWidget {
                         (folder) => _FolderTile(
                           folder: folder,
                           count: provider.favoriteCountInCategory(folder.id),
+                          colors: colors,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -71,8 +82,8 @@ class FavoritesScreen extends StatelessWidget {
                         ),
                         child: Text(
                           folders.isEmpty ? 'お気に入り一覧' : '未分類',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: colors.textSecondary,
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
@@ -107,7 +118,7 @@ class FavoritesScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.of(context).cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -120,15 +131,20 @@ class FavoritesScreen extends StatelessWidget {
 class _FolderTile extends StatelessWidget {
   final ShoppingCategory folder;
   final int count;
+  final AppColors colors;
 
-  const _FolderTile({required this.folder, required this.count});
+  const _FolderTile({
+    required this.folder,
+    required this.count,
+    required this.colors,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -144,21 +160,17 @@ class _FolderTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: colors.divider),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.accentBlue.withValues(alpha: 0.1),
+                    color: colors.accentBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
-                    Icons.folder,
-                    color: AppColors.accentBlue,
-                    size: 20,
-                  ),
+                  child: Icon(Icons.folder, color: colors.accentBlue, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -172,13 +184,10 @@ class _FolderTile extends StatelessWidget {
                 ),
                 Text(
                   '$count件',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13, color: colors.textSecondary),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                Icon(Icons.chevron_right, color: colors.textSecondary),
               ],
             ),
           ),
@@ -193,30 +202,27 @@ class _EmptyFavorites extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.star_outline,
-              size: 72,
-              color: AppColors.checkedGray,
-            ),
+            Icon(Icons.star_outline, size: 72, color: colors.checkedGray),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'お気に入りはまだありません',
               style: TextStyle(
                 fontSize: 17,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'よく買う商品を登録しておくと\n次回から文字入力なしで追加できます',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
