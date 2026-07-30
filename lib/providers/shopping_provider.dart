@@ -239,8 +239,31 @@ class ShoppingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// お気に入りを別のフォルダへ移動する(folderIdがnullまたは未分類IDなら未分類に移動)
+  /// FavoriteItem.copyWithはnull=「変更なし」の意味を持つため、ここでは直接
+  /// 新しいインスタンスを組み立てて確実にcategoryIdを上書きする。
+  Future<void> moveFavoriteToFolder(String favoriteId, String? folderId) async {
+    final index = _favorites.indexWhere((e) => e.id == favoriteId);
+    if (index == -1) return;
+    final current = _favorites[index];
+    final targetId = folderId ?? uncategorizedCategoryId;
+    if (current.categoryId == targetId) return; // 変更なし
+
+    final moved = FavoriteItem(
+      id: current.id,
+      name: current.name,
+      categoryId: targetId,
+      sortOrder: current.sortOrder,
+      useCount: current.useCount,
+      createdAt: current.createdAt,
+    );
+    _favorites[index] = moved;
+    await _storage.saveFavorite(moved);
+    notifyListeners();
+  }
+
   // ============ カテゴリ(お気に入りのフォルダ分け) ============
-  // MVPでは1階層のフォルダとして利用。parentCategoryIdは将来のサブフォルダ拡張用に保持。
+  // parentCategoryIdを使ってフォルダの中にサブフォルダを持てる(階層構造)。
 
   void _sortCategories() {
     _categories.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
@@ -249,23 +272,64 @@ class ShoppingProvider extends ChangeNotifier {
   /// 「未分類」を含む全カテゴリ(フォルダ)
   List<ShoppingCategory> get categories => _categories;
 
-  /// 「未分類」以外のユーザー作成フォルダ
+  /// 「未分類」以外のユーザー作成フォルダ(全階層含む)
   List<ShoppingCategory> get userFolders =>
       _categories.where((c) => c.id != uncategorizedCategoryId).toList();
 
-  /// 指定カテゴリに属するお気に入りの件数
+  /// 最上位(親を持たない)のユーザーフォルダ。お気に入りトップ画面の表示に使う。
+  List<ShoppingCategory> get topLevelFolders =>
+      userFolders.where((c) => c.parentCategoryId == null).toList();
+
+  /// 指定フォルダの直下にあるサブフォルダ一覧
+  List<ShoppingCategory> subFoldersOf(String parentId) =>
+      userFolders.where((c) => c.parentCategoryId == parentId).toList();
+
+  /// 指定カテゴリに直接属するお気に入りの件数(サブフォルダ内は含まない)
   int favoriteCountInCategory(String categoryId) {
     return _favorites
         .where((f) => (f.categoryId ?? uncategorizedCategoryId) == categoryId)
         .length;
   }
 
-  /// 新しいフォルダを作成
-  Future<ShoppingCategory> addFolder(String name) async {
+  /// フォルダ選択UI用の表示名(サブフォルダは「親名 / 子名」の形式にする)
+  String folderDisplayPath(String folderId) {
+    final names = <String>[];
+    String? currentId = folderId;
+    var guard = 0; // 循環参照があっても無限ループしないための安全策
+    while (currentId != null && guard < 10) {
+      final folder = _categories.firstWhere(
+        (c) => c.id == currentId,
+        orElse: () => ShoppingCategory(id: '', name: ''),
+      );
+      if (folder.id.isEmpty) break;
+      names.insert(0, folder.name);
+      currentId = folder.parentCategoryId;
+      guard++;
+    }
+    return names.join(' / ');
+  }
+
+  /// targetIdがfolderId自身、またはfolderIdの子孫(サブフォルダのさらに下)かどうか判定。
+  /// フォルダを自分自身や自分の子の中に移動してしまう循環参照を防ぐために使う。
+  bool _isSameOrDescendant(String folderId, String targetId) {
+    if (folderId == targetId) return true;
+    final children = _categories.where((c) => c.parentCategoryId == folderId);
+    for (final child in children) {
+      if (_isSameOrDescendant(child.id, targetId)) return true;
+    }
+    return false;
+  }
+
+  /// 新しいフォルダを作成。parentFolderIdを指定するとサブフォルダとして作成される。
+  Future<ShoppingCategory> addFolder(
+    String name, {
+    String? parentFolderId,
+  }) async {
     final trimmed = name.trim();
     final category = ShoppingCategory(
       id: _uuid.v4(),
       name: trimmed,
+      parentCategoryId: parentFolderId,
       sortOrder: _categories.isEmpty
           ? 1
           : _categories
@@ -289,7 +353,58 @@ class ShoppingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// フォルダを削除。中に入っていたお気に入りは「未分類」に移動する
+  /// フォルダを別のフォルダの中に移動する(newParentIdがnullなら最上位に移動)。
+  /// 自分自身や自分の子フォルダの中への移動は無視する(循環参照防止)。
+  Future<void> moveFolderToParent(String folderId, String? newParentId) async {
+    if (folderId == uncategorizedCategoryId) return; // 未分類は移動不可
+    if (newParentId != null && _isSameOrDescendant(folderId, newParentId)) {
+      return; // 自分自身や子孫フォルダの中には移動できない
+    }
+    final index = _categories.indexWhere((c) => c.id == folderId);
+    if (index == -1) return;
+    final current = _categories[index];
+    if (current.parentCategoryId == newParentId) return; // 変更なし
+
+    final moved = ShoppingCategory(
+      id: current.id,
+      name: current.name,
+      parentCategoryId: newParentId,
+      sortOrder: current.sortOrder,
+    );
+    _categories[index] = moved;
+    await _storage.saveCategory(moved);
+    notifyListeners();
+  }
+
+  /// フォルダ階層をツリー順(親の直後に子が並ぶ順)でフラット化したリストを返す。
+  /// depthは表示時のインデント段数に使う。excludeSubtreeOfを指定すると、
+  /// そのフォルダ自身と子孫フォルダを除外する(フォルダ移動時に自分の中へ移動できないようにするため)。
+  List<({ShoppingCategory folder, int depth})> buildFolderTree({
+    String? excludeSubtreeOf,
+  }) {
+    final result = <({ShoppingCategory folder, int depth})>[];
+
+    void addChildren(String? parentId, int depth) {
+      final children = userFolders
+          .where((c) => c.parentCategoryId == parentId)
+          .toList();
+      for (final child in children) {
+        if (excludeSubtreeOf != null &&
+            _isSameOrDescendant(excludeSubtreeOf, child.id)) {
+          continue;
+        }
+        result.add((folder: child, depth: depth));
+        addChildren(child.id, depth + 1);
+      }
+    }
+
+    addChildren(null, 0);
+    return result;
+  }
+
+  /// フォルダを削除。
+  /// - 中に入っていたお気に入りは「未分類」に移動する
+  /// - 直下のサブフォルダは削除せず、最上位(親なし)に上げる
   Future<void> deleteFolder(String id) async {
     if (id == uncategorizedCategoryId) return; // 未分類は削除不可
 
@@ -300,6 +415,19 @@ class ShoppingProvider extends ChangeNotifier {
         categoryId: uncategorizedCategoryId,
       );
       await _storage.saveFavorite(_favorites[index]);
+    }
+
+    // 直下のサブフォルダは削除せず最上位に上げる(データを失わないため)
+    for (final child in subFoldersOf(id)) {
+      final index = _categories.indexWhere((c) => c.id == child.id);
+      final promoted = ShoppingCategory(
+        id: child.id,
+        name: child.name,
+        parentCategoryId: null,
+        sortOrder: child.sortOrder,
+      );
+      _categories[index] = promoted;
+      await _storage.saveCategory(promoted);
     }
 
     _categories.removeWhere((c) => c.id == id);

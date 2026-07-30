@@ -20,7 +20,7 @@ class FavoritesScreen extends StatelessWidget {
     final colors = AppColors.of(context);
     return Consumer<ShoppingProvider>(
       builder: (context, provider, _) {
-        final folders = provider.userFolders;
+        final folders = provider.topLevelFolders;
         final unfiled = provider.favorites
             .where(
               (f) =>
@@ -68,6 +68,9 @@ class FavoritesScreen extends StatelessWidget {
                         (folder) => _FolderTile(
                           folder: folder,
                           count: provider.favoriteCountInCategory(folder.id),
+                          subFolderCount: provider
+                              .subFoldersOf(folder.id)
+                              .length,
                           colors: colors,
                         ),
                       ),
@@ -131,11 +134,13 @@ class FavoritesScreen extends StatelessWidget {
 class _FolderTile extends StatelessWidget {
   final ShoppingCategory folder;
   final int count;
+  final int subFolderCount;
   final AppColors colors;
 
   const _FolderTile({
     required this.folder,
     required this.count,
+    required this.subFolderCount,
     required this.colors,
   });
 
@@ -183,7 +188,9 @@ class _FolderTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$count件',
+                  subFolderCount > 0
+                      ? '$count件・フォルダ$subFolderCount'
+                      : '$count件',
                   style: TextStyle(fontSize: 13, color: colors.textSecondary),
                 ),
                 const SizedBox(width: 4),

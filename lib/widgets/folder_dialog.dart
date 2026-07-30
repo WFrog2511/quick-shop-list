@@ -4,10 +4,12 @@ import '../providers/shopping_provider.dart';
 import '../models/category.dart';
 
 /// フォルダの新規作成 / 名前変更用ダイアログ
+/// parentFolderIdを指定すると、そのフォルダの中にサブフォルダとして作成する。
 class FolderDialog extends StatefulWidget {
   final ShoppingCategory? folder; // nullなら新規作成
+  final String? parentFolderId; // 新規作成時、指定するとサブフォルダになる
 
-  const FolderDialog({super.key, this.folder});
+  const FolderDialog({super.key, this.folder, this.parentFolderId});
 
   @override
   State<FolderDialog> createState() => _FolderDialogState();
@@ -33,7 +35,11 @@ class _FolderDialogState extends State<FolderDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(isEditing ? 'フォルダ名を変更' : '新しいフォルダ'),
+      title: Text(
+        isEditing
+            ? 'フォルダ名を変更'
+            : (widget.parentFolderId != null ? '新しいサブフォルダ' : '新しいフォルダ'),
+      ),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -65,7 +71,7 @@ class _FolderDialogState extends State<FolderDialog> {
     if (isEditing) {
       provider.renameFolder(widget.folder!.id, name);
     } else {
-      provider.addFolder(name);
+      provider.addFolder(name, parentFolderId: widget.parentFolderId);
     }
     Navigator.pop(context);
   }

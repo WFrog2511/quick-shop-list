@@ -43,7 +43,7 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ShoppingProvider>();
-    final folders = provider.userFolders;
+    final folderTree = provider.buildFolderTree();
     final colors = AppColors.of(context);
 
     return Scaffold(
@@ -104,12 +104,14 @@ class _FavoriteEditScreenState extends State<FavoriteEditScreen> {
                   onTap: () => setState(() => _selectedCategoryId = null),
                   colors: colors,
                 ),
-                ...folders.map(
-                  (folder) => _FolderChip(
-                    label: folder.name,
-                    selected: _selectedCategoryId == folder.id,
+                ...folderTree.map(
+                  (entry) => _FolderChip(
+                    label: entry.depth > 0
+                        ? '${'　' * entry.depth}└ ${entry.folder.name}'
+                        : entry.folder.name,
+                    selected: _selectedCategoryId == entry.folder.id,
                     onTap: () =>
-                        setState(() => _selectedCategoryId = folder.id),
+                        setState(() => _selectedCategoryId = entry.folder.id),
                     colors: colors,
                   ),
                 ),

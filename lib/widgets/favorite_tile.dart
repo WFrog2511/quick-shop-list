@@ -4,6 +4,7 @@ import '../providers/shopping_provider.dart';
 import '../models/favorite_item.dart';
 import '../theme.dart';
 import '../screens/favorite_edit_screen.dart';
+import 'move_to_folder_sheet.dart';
 
 /// お気に入り1件の行(共通ウィジェット)。
 /// タップ=買い物リストに即追加。編集アイコンで編集画面へ。
@@ -67,20 +68,47 @@ class FavoriteTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
+                PopupMenuButton<String>(
                   icon: Icon(
-                    Icons.edit_outlined,
+                    Icons.more_vert,
                     size: 20,
                     color: colors.textSecondary,
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FavoriteEditScreen(favorite: favorite),
-                      ),
-                    );
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              FavoriteEditScreen(favorite: favorite),
+                        ),
+                      );
+                    } else if (value == 'move') {
+                      showMoveToFolderSheet(context, favorite);
+                    }
                   },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('編集'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'move',
+                      child: Row(
+                        children: [
+                          Icon(Icons.drive_file_move_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('フォルダに移動'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
