@@ -6,6 +6,7 @@ class ShoppingListItem {
   bool isChecked;
   String? favoriteItemId; // お気に入りから追加された場合の元IDを保持
   int sortOrder;
+  String? note; // その時々のメモ(特売品を選ぶ、サイズ指定など、買うたびに変わる情報)
   final DateTime addedAt;
 
   ShoppingListItem({
@@ -14,6 +15,7 @@ class ShoppingListItem {
     this.isChecked = false,
     this.favoriteItemId,
     this.sortOrder = 0,
+    this.note,
     DateTime? addedAt,
   }) : addedAt = addedAt ?? DateTime.now();
 
@@ -24,6 +26,7 @@ class ShoppingListItem {
       'isChecked': isChecked,
       'favoriteItemId': favoriteItemId,
       'sortOrder': sortOrder,
+      'note': note,
       'addedAt': addedAt.toIso8601String(),
     };
   }
@@ -35,12 +38,15 @@ class ShoppingListItem {
       isChecked: map['isChecked'] as bool? ?? false,
       favoriteItemId: map['favoriteItemId'] as String?,
       sortOrder: map['sortOrder'] as int? ?? 0,
+      note: map['note'] as String?,
       addedAt: map['addedAt'] != null
           ? DateTime.tryParse(map['addedAt'] as String) ?? DateTime.now()
           : DateTime.now(),
     );
   }
 
+  /// 通常の項目更新用(noteは常に現在の値を維持する)。
+  /// noteの変更・クリアはShoppingProvider側で直接インスタンスを組み立てて行う。
   ShoppingListItem copyWith({
     String? name,
     bool? isChecked,
@@ -53,6 +59,7 @@ class ShoppingListItem {
       isChecked: isChecked ?? this.isChecked,
       favoriteItemId: favoriteItemId ?? this.favoriteItemId,
       sortOrder: sortOrder ?? this.sortOrder,
+      note: note,
       addedAt: addedAt,
     );
   }

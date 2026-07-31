@@ -200,19 +200,49 @@ class _ShoppingItemTile extends StatelessWidget {
                   onChanged: (_) => provider.toggleChecked(item.id),
                 ),
                 Expanded(
-                  child: Text(
-                    item.name,
-                    style: TextStyle(
-                      fontSize: 17,
-                      color: item.isChecked
-                          ? colors.checkedGray
-                          : colors.textPrimary,
-                      decoration: item.isChecked
-                          ? TextDecoration.lineThrough
-                          : null,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontSize: 17,
+                          color: item.isChecked
+                              ? colors.checkedGray
+                              : colors.textPrimary,
+                          decoration: item.isChecked
+                              ? TextDecoration.lineThrough
+                              : null,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (item.note != null && item.note!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            item.note!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: item.isChecked
+                                  ? colors.checkedGray
+                                  : colors.textSecondary,
+                              decoration: item.isChecked
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: colors.textSecondary,
+                  ),
+                  onPressed: () => _openEditItemDialog(context, provider, item),
                 ),
                 IconButton(
                   icon: Icon(
@@ -227,6 +257,97 @@ class _ShoppingItemTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _openEditItemDialog(
+    BuildContext context,
+    ShoppingProvider provider,
+    ShoppingListItem item,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => _EditShoppingItemDialog(provider: provider, item: item),
+    );
+  }
+}
+
+/// 買い物リストの商品名とメモ(その時々の情報)を編集するダイアログ
+class _EditShoppingItemDialog extends StatefulWidget {
+  final ShoppingProvider provider;
+  final ShoppingListItem item;
+
+  const _EditShoppingItemDialog({required this.provider, required this.item});
+
+  @override
+  State<_EditShoppingItemDialog> createState() =>
+      _EditShoppingItemDialogState();
+}
+
+class _EditShoppingItemDialogState extends State<_EditShoppingItemDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _noteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.item.name);
+    _noteController = TextEditingController(text: widget.item.note ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('商品を編集'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: '商品名',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'メモ(任意)',
+              hintText: '例: Sサイズ、特売品でOK、赤色',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          onPressed: () {
+            widget.provider.updateShoppingItem(
+              widget.item.id,
+              name: _nameController.text,
+              note: _noteController.text,
+            );
+            Navigator.pop(context);
+          },
+          child: const Text('保存'),
+        ),
+      ],
     );
   }
 }

@@ -175,6 +175,33 @@ class ShoppingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 商品名とその時々のメモ(サイズ・色・特売情報など)を編集する。
+  /// note に null を渡すとメモを削除できるよう、copyWithを使わず直接組み立てる。
+  Future<void> updateShoppingItem(
+    String id, {
+    String? name,
+    String? note,
+  }) async {
+    final index = _shoppingList.indexWhere((e) => e.id == id);
+    if (index == -1) return;
+    final current = _shoppingList[index];
+    final trimmedNote = note?.trim();
+    final updated = ShoppingListItem(
+      id: current.id,
+      name: (name != null && name.trim().isNotEmpty)
+          ? name.trim()
+          : current.name,
+      isChecked: current.isChecked,
+      favoriteItemId: current.favoriteItemId,
+      sortOrder: current.sortOrder,
+      note: (trimmedNote == null || trimmedNote.isEmpty) ? null : trimmedNote,
+      addedAt: current.addedAt,
+    );
+    _shoppingList[index] = updated;
+    await _storage.saveShoppingItem(updated);
+    notifyListeners();
+  }
+
   /// チェック済みアイテムを一括削除(「買い物完了」操作用)
   Future<void> clearCheckedItems() async {
     final checkedIds = checkedItems.map((e) => e.id).toList();
@@ -437,17 +464,23 @@ class ShoppingProvider extends ChangeNotifier {
 
   // ============ お気に入りのエクスポート / インポート ============
   // メモ帳などにコピーして保存・復元できるよう、シンプルなテキスト形式で書き出す。
+  // v2形式: フォルダ階層は「親 / 子 / 孫」のパス形式で1行に記録することで、
+  // サブフォルダの構造も含めて復元できるようにする。
   // 形式:
-  //   #QuickShopList:Favorites:v1
+  //   #QuickShopList:Favorites:v2
   //   [フォルダ名]
   //   商品名
   //   商品名
   //
+  //   [親フォルダ名 / 子フォルダ名]
+  //   商品名
+  //
   //   [未分類]
   //   商品名
-  static const String _exportHeader = '#QuickShopList:Favorites:v1';
+  static const String _exportHeader = '#QuickShopList:Favorites:v2';
+  static const String _folderPathSeparator = ' / ';
 
-  /// お気に入り全体をテキスト形式に書き出す
+  /// お気に入り全体をテキスト形式に書き出す(フォルダ階層情報を含む)
   String exportFavoritesAsText() {
     final buffer = StringBuffer();
     buffer.writeln(_exportHeader);
@@ -458,11 +491,14 @@ class ShoppingProvider extends ChangeNotifier {
       grouped.putIfAbsent(catId, () => []).add(fav);
     }
 
-    for (final folder in userFolders) {
-      final items = grouped[folder.id];
-      if (items == null || items.isEmpty) continue;
+    // buildFolderTree()は親フォルダの直後に子フォルダが続く順で返すため、
+    // 階層をそのままパス表記で書き出すことができる。
+    // アイテムが1件もない空フォルダも、階層構造を保持するために出力する。
+    for (final entry in buildFolderTree()) {
+      final folder = entry.folder;
+      final items = grouped[folder.id] ?? const [];
       buffer.writeln();
-      buffer.writeln('[${folder.name}]');
+      buffer.writeln('[${folderDisplayPath(folder.id)}]');
       for (final item in items) {
         buffer.writeln(item.name);
       }
@@ -481,10 +517,13 @@ class ShoppingProvider extends ChangeNotifier {
   }
 
   /// テキストからお気に入りを読み込む(既存データとマージ、重複はスキップ)
+  /// フォルダ見出しは「親 / 子 / 孫」のパス形式(v2)にも、単一フォルダ名のみ
+  /// (旧v1形式)にも対応する。パスの各階層を順にたどり、既存フォルダがあれば
+  /// それを使い、なければ同じ親の下に新規作成する。
   /// 戻り値: (追加したフォルダ数, 追加した商品数, 重複でスキップした数)
   Future<(int, int, int)> importFavoritesFromText(String text) async {
     final lines = text.split('\n');
-    String? currentFolderName;
+    String? currentCategoryId; // nullなら未分類
     int addedFolders = 0;
     int addedItems = 0;
     int skipped = 0;
@@ -495,29 +534,43 @@ class ShoppingProvider extends ChangeNotifier {
       if (line.startsWith('#')) continue; // ヘッダー行はスキップ
 
       if (line.startsWith('[') && line.endsWith(']')) {
-        currentFolderName = line.substring(1, line.length - 1).trim();
+        final pathText = line.substring(1, line.length - 1).trim();
+        if (pathText == '未分類') {
+          currentCategoryId = null;
+          continue;
+        }
+
+        // 「親 / 子 / 孫」のパスを1階層ずつ解決(なければ作成)する
+        final segments = pathText
+            .split(_folderPathSeparator)
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+        String? parentId;
+        for (final segment in segments) {
+          ShoppingCategory? folder;
+          for (final c in _categories) {
+            if (c.name == segment &&
+                c.id != uncategorizedCategoryId &&
+                c.parentCategoryId == parentId) {
+              folder = c;
+              break;
+            }
+          }
+          if (folder == null) {
+            folder = await addFolder(segment, parentFolderId: parentId);
+            addedFolders++;
+          }
+          parentId = folder.id;
+        }
+        currentCategoryId = parentId;
         continue;
       }
 
       // 商品名の行
       final itemName = line;
-      String? categoryId;
-
-      if (currentFolderName != null && currentFolderName != '未分類') {
-        // フォルダ名から既存フォルダを検索、なければ新規作成
-        ShoppingCategory? folder;
-        for (final c in _categories) {
-          if (c.name == currentFolderName && c.id != uncategorizedCategoryId) {
-            folder = c;
-            break;
-          }
-        }
-        if (folder == null) {
-          folder = await addFolder(currentFolderName);
-          addedFolders++;
-        }
-        categoryId = folder.id;
-      }
+      final categoryId = currentCategoryId;
 
       // 同じフォルダ内に同名の商品がすでにあればスキップ(重複防止)
       final targetCategoryId = categoryId ?? uncategorizedCategoryId;

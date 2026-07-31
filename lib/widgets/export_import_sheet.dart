@@ -36,6 +36,7 @@ class ExportImportSheet extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'テキストとしてコピーし、メモ帳などに保存できます。\n'
+              'フォルダ・サブフォルダの階層情報も含めて保存されます。\n'
               '同じ形式のテキストを貼り付けて復元することもできます。',
               style: TextStyle(fontSize: 13, color: colors.textSecondary),
             ),
@@ -67,7 +68,7 @@ class ExportImportSheet extends StatelessWidget {
     final provider = context.read<ShoppingProvider>();
     final text = provider.exportFavoritesAsText();
 
-    if (text.trim() == '#QuickShopList:Favorites:v1' || text.trim().isEmpty) {
+    if (text.trim() == '#QuickShopList:Favorites:v2' || text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('お気に入りが登録されていません')));
@@ -128,7 +129,8 @@ class _ImportTextDialogState extends State<_ImportTextDialog> {
             maxLines: 8,
             minLines: 4,
             decoration: const InputDecoration(
-              hintText: '#QuickShopList:Favorites:v1\n[食料品]\n牛乳\n卵\n...',
+              hintText:
+                  '#QuickShopList:Favorites:v2\n[食料品]\n牛乳\n卵\n\n[食料品 / 野菜]\nにんじん\n...',
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
