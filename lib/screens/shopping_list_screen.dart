@@ -5,6 +5,7 @@ import '../models/shopping_list_item.dart';
 import '../theme.dart';
 import '../widgets/add_from_favorites_sheet.dart';
 import '../widgets/quick_add_dialog.dart';
+import '../widgets/paste_from_chatgpt_sheet.dart';
 
 /// 今日の買い物リスト画面(メイン画面)
 /// - チェックだけで完結する操作を最優先
@@ -51,6 +52,11 @@ class ShoppingListScreen extends StatelessWidget {
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.smart_toy_outlined),
+                tooltip: 'ChatGPTからリストを貼り付け',
+                onPressed: () => _openPasteFromChatGpt(context),
+              ),
               IconButton(
                 icon: Icon(
                   provider.isDarkMode
@@ -141,6 +147,18 @@ class ShoppingListScreen extends StatelessWidget {
 
   void _openQuickAdd(BuildContext context) {
     showDialog(context: context, builder: (_) => const QuickAddDialog());
+  }
+
+  void _openPasteFromChatGpt(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.of(context).cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const PasteFromChatGptSheet(),
+    );
   }
 
   void _confirmClearChecked(BuildContext context, ShoppingProvider provider) {

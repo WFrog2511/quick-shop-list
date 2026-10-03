@@ -149,6 +149,78 @@ class ShoppingProvider extends ChangeNotifier {
     }
   }
 
+  // ---------- ChatGPT等のMarkdown箇条書きから一括追加 ----------
+  // ChatGPTに「- 商品名」形式で出力してもらい、それを貼り付けるとまとめて
+  // 買い物リストに追加できる機能。対応する箇条書き記法:
+  //   - 商品名 / * 商品名 / + 商品名
+  //   - [ ] 商品名 / - [x] 商品名 (チェックボックス形式)
+  //   1. 商品名 / 1) 商品名 (番号付きリスト)
+  // 見出し(# ...)、空行、区切り線(---など)は無視する。
+  static final RegExp _checkboxLinePattern = RegExp(
+    r'^[-*+]\s+\[[ xX]\]\s*(.*)$',
+  );
+  static final RegExp _bulletLinePattern = RegExp(r'^[-*+]\s+(.*)$');
+  static final RegExp _numberedLinePattern = RegExp(r'^\d+[.)]\s+(.*)$');
+  static final RegExp _dividerLinePattern = RegExp(r'^[-=*_]{3,}$');
+  static final RegExp _boldMarkdownPattern = RegExp(r'\*\*(.*?)\*\*');
+  static final RegExp _codeMarkdownPattern = RegExp(r'`([^`]+)`');
+
+  /// テキストからMarkdown箇条書きの商品名だけを抽出する(追加は行わない)。
+  List<String> parseMarkdownListItems(String text) {
+    final results = <String>[];
+
+    for (final rawLine in text.split('\n')) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+      if (line.startsWith('#')) continue; // 見出しは無視
+      if (_dividerLinePattern.hasMatch(line)) continue; // 区切り線は無視
+
+      String? content;
+      final checkboxMatch = _checkboxLinePattern.firstMatch(line);
+      if (checkboxMatch != null) {
+        content = checkboxMatch.group(1);
+      } else {
+        final bulletMatch = _bulletLinePattern.firstMatch(line);
+        if (bulletMatch != null) {
+          content = bulletMatch.group(1);
+        } else {
+          final numberedMatch = _numberedLinePattern.firstMatch(line);
+          if (numberedMatch != null) {
+            content = numberedMatch.group(1);
+          }
+        }
+      }
+
+      if (content == null) continue;
+
+      // **太字** や `コード` などの簡易的なMarkdown装飾を取り除く
+      content = content.replaceAllMapped(
+        _boldMarkdownPattern,
+        (m) => m.group(1) ?? '',
+      );
+      content = content.replaceAllMapped(
+        _codeMarkdownPattern,
+        (m) => m.group(1) ?? '',
+      );
+      content = content.trim();
+
+      if (content.isNotEmpty) {
+        results.add(content);
+      }
+    }
+    return results;
+  }
+
+  /// Markdown箇条書きのテキストを解析し、買い物リストへまとめて追加する。
+  /// 戻り値: 追加した商品数
+  Future<int> addItemsFromMarkdownList(String text) async {
+    final names = parseMarkdownListItems(text);
+    for (final name in names) {
+      await addShoppingItemByName(name);
+    }
+    return names.length;
+  }
+
   int _nextShoppingSortOrder() {
     if (_shoppingList.isEmpty) return 0;
     return _shoppingList
